@@ -1,36 +1,33 @@
+# Build bang MinGW (gcc). Chay: mingw32-make  (hoac make)
+# Duong dan tuyet doi den thu vien neu dich vu o khac thi sua 2 dong duoi.
+MUJOCO_DIR = ../../MuJoCo
+GLFW_DIR   = ../../third_party/glfw-3.4.bin.WIN64
+
 PROJECT_INC = src/logic/include
 
-MUJOCO_INC = C:/Users/Pheelix/mujoco-3.3.0-windows-x86_64/include
-MUJOCO_LIB = C:/Users/Pheelix/mujoco-3.3.0-windows-x86_64/lib
-MUJOCO_LINK = -lmujoco
-
-GLFW_INC = C:/Users/Pheelix/glfw-3.4.bin.WIN64/include
-GLFW_LIB = C:/Users/Pheelix/glfw-3.4.bin.WIN64/lib-mingw-w64
-GLFW_LINK = -lglfw3 -luser32 -lgdi32 -lshell32 -lopengl32
-
 COMPILER = gcc
-TARGET = bin/belt.exe
+TARGET   = bin/belt.exe
 
 SRC = src/main.c src/logic/logic.c
-OBJ = $(SRC:src/%.c=obj/%.o)
 
-CFLAGS = -I$(PROJECT_INC) -I$(MUJOCO_INC) -I$(GLFW_INC)
-LDFLAGS = -L$(MUJOCO_LIB) -L$(GLFW_LIB) $(MUJOCO_LINK) $(GLFW_LINK)
+CFLAGS  = -O2 -I $(PROJECT_INC) -I $(MUJOCO_DIR)/include -I $(GLFW_DIR)/include
+LDFLAGS = -L $(MUJOCO_DIR)/lib -L $(GLFW_DIR)/lib-mingw-w64 \
+          -lmujoco -lglfw3 -lgdi32 -lshell32 -lopengl32
 
 all: $(TARGET)
 
-$(TARGET): $(OBJ) | bin
-	$(COMPILER) $(OBJ) -o $@ $(LDFLAGS)
-
-obj/%.o: src/%.c | obj
-	@mkdir -p $(dir $@)
-	$(COMPILER) -c $< -o $@ $(CFLAGS)
+$(TARGET): $(SRC) | bin
+	$(COMPILER) $(CFLAGS) $(SRC) $(LDFLAGS) -o $(TARGET)
+	copy /Y "$(MUJOCO_DIR)\bin\mujoco.dll" bin\ >nul
+	copy /Y "$(GLFW_DIR)\lib-mingw-w64\glfw3.dll" bin\ >nul
 
 bin:
-	mkdir -p bin
-
-obj:
-	mkdir -p obj
+	if not exist bin mkdir bin
 
 clean:
-	rm -rf obj bin
+	rmdir /S /Q bin
+
+.PHONY: all bin clean run
+
+run: $(TARGET)
+	 cd bin && belt.exe

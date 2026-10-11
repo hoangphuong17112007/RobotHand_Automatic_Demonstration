@@ -1,0 +1,367 @@
+﻿<mujoco model="assembly_cell_6dof">
+
+    <!-- =====================================================================
+         MO PHONG CELT LAP RAP TU DONG - CANH TAY 6 BAC TU DO
+         Giai doan 1: khoi co hoc + khoi cam bien (vat li ao)
+         - 30 vi linh kien mesh roi xuong thung (ma sat + va cham mem)
+         - Camera cong nghiep tai cot/chan (truc 6), FOV 60 deg, 1280x1024
+         - Cam bien luc/moment F/T tai diem giao cot tay - gam kep
+         ===================================================================== -->
+
+    <compiler autolimits="true" balanceinertia="true" />
+
+    <!-- moi phong 1 buoc = 1 ms (RTOS ao cua khoi IPC) -->
+    <option timestep="0.001" integrator="implicitfast" gravity="0 0 -9.81"
+            solver="Newton" iterations="50" ls_iterations="30"
+            tolerance="1e-8" cone="pyramidal" />
+
+    <visual>
+        <headlight diffuse="0.6 0.6 0.6" ambient="0.3 0.3 0.3" specular="0 0 0" />
+        <rgba haze="0.15 0.25 0.35 1" />
+        <global azimuth="-130" elevation="-60" offwidth="1600" offheight="1200" />
+        <quality shadowsize="4096" />
+    </visual>
+
+    <default>
+        <default class="joint">
+            <joint damping="1" />
+        </default>
+
+        <!-- vi linh kien: ma sat cao + va cham mem (soft contact) -->
+        <default class="part">
+            <geom type="mesh" contype="1" conaffinity="1" mass="0.02"
+                  friction="1.0 0.005 0.0001"
+                  margin="0.0008" gap="0"
+                  solref="0.004 1" solimp="0.85 0.95 0.0003" />
+        </default>
+
+        <!-- thung / mat ban: ma sat cao, va cham mem hon -->
+        <default class="cell">
+            <geom contype="1" conaffinity="1"
+                  friction="1.2 0.005 0.0001"
+                  margin="0.0005" gap="0"
+                  solref="0.005 1" solimp="0.9 0.95 0.0003" />
+        </default>
+    </default>
+
+    <asset>
+        <texture type="skybox" builtin="gradient" rgb1="0.3 0.5 0.7" rgb2="1 1 1" width="512"
+            height="3072" />
+        <texture type="2d" name="groundplane" builtin="checker" mark="edge" rgb1="0.2 0.3 0.4"
+            rgb2="0.1 0.2 0.3" markrgb="0.8 0.8 0.8" width="300" height="300" />
+        <material name="groundplane" texture="groundplane" texuniform="true" texrepeat="5 5"
+            reflectance="0.2" />
+        <material name="tabletop" rgba="0.55 0.45 0.35 1" reflectance="0.1" />
+        <material name="bin_blue" rgba="0.12 0.35 0.65 1" />
+        <material name="bin_orange" rgba="0.85 0.45 0.10 1" />
+
+        <!-- mau sac phan biet de khoi AI phan doan (color segmentation) -->
+        <material name="lk_orange" rgba="0.95 0.45 0.08 1" />
+        <material name="lk_teal" rgba="0.10 0.60 0.62 1" />
+        <material name="lk_purple" rgba="0.55 0.25 0.80 1" />
+        <material name="lk_green" rgba="0.20 0.72 0.30 1" />
+        <material name="lk_gray" rgba="0.70 0.70 0.72 1" />
+
+        <!-- MESH VI LINH KIEN (don vi mm, compiler scale 0.001) -->
+        <mesh name="lk1" file="linhkien/lk1.stl" scale="0.001 0.001 0.001" />
+        <mesh name="lk2" file="linhkien/lk2.stl" scale="0.001 0.001 0.001" />
+        <mesh name="lk3" file="linhkien/lk3.stl" scale="0.001 0.001 0.001" />
+        <mesh name="lk4" file="linhkien/lk4.stl" scale="0.001 0.001 0.001" />
+        <mesh name="lk5" file="linhkien/lk5.stl" scale="0.001 0.001 0.001" />
+    </asset>
+
+    <asset>
+        <model name="Base" file="models/Base.xml" />
+        <model name="Hip" file="models/Hip.xml" />
+        <model name="Hindarm" file="models/Hindarm.xml" />
+        <model name="Forearm" file="models/Forearm.xml" />
+        <model name="Wrist" file="models/Wrist.xml" />
+        <model name="Hand" file="models/Hand.xml" />
+        <model name="Gripper" file="models/Gripper.xml" />
+    </asset>
+
+    <worldbody>
+        <light pos="0.4 0.4 1.4" dir="-0.3 -0.3 -1" diffuse="0.8 0.8 0.8"
+               specular="0.3 0.3 0.3" directional="true" />
+        <light pos="-0.5 -0.4 1.2" dir="0.4 0.3 -1" diffuse="0.45 0.45 0.45"
+               specular="0.1 0.1 0.1" directional="true" />
+        <light pos="0 0.5 0.9" dir="0 -0.5 -1" diffuse="0.35 0.35 0.35"
+               specular="0 0 0" directional="true" castshadow="false" />
+
+        <!-- SAN (day) + MAT BAN LAP RAP (mat tren = z = 0) -->
+        <geom name="floor" type="plane" size="0 0 0.05" material="groundplane"
+              pos="0 0 -0.75" friction="1 0.005 0.0001" />
+        <geom name="table" class="cell" type="box" pos="0.20 0 -0.375"
+              size="0.70 0.55 0.375" material="tabletop" />
+
+        <!-- ================= THUNG LINH KIEN (nguon) ================= -->
+        <!-- center (0, 0.365), rong trong 0.40 x 0.13, tuong cao 24 mm -->
+        <body name="bin_source" pos="0 0 0">
+            <geom name="bin_src_floor" class="cell" type="box" pos="0 0.365 0.003"
+                  size="0.206 0.071 0.003" material="bin_blue" />
+            <geom name="bin_src_w1" class="cell" type="box" pos="0 0.30 0.026"
+                  size="0.206 0.003 0.020" material="bin_blue" />
+            <geom name="bin_src_w2" class="cell" type="box" pos="0 0.43 0.026"
+                  size="0.206 0.003 0.020" material="bin_blue" />
+            <geom name="bin_src_w3" class="cell" type="box" pos="-0.203 0.365 0.026"
+                  size="0.003 0.071 0.020" material="bin_blue" />
+            <geom name="bin_src_w4" class="cell" type="box" pos="0.203 0.365 0.026"
+                  size="0.003 0.071 0.020" material="bin_blue" />
+            <!-- Khay xanh - nguồn linh kiện -->
+            <site name="source_zone_marker" type="sphere" pos="0 0.365 0.045"
+                  size="0.008" rgba="0.2 0.6 1 0.6" />
+        </body>
+
+        <!-- ================= THUNG DICH (muc tieu) ================= -->
+        <body name="bin_target" pos="0 0 0">
+            <geom name="bin_tgt_floor" class="cell" type="box" pos="0 -0.365 0.003"
+                  size="0.206 0.071 0.003" material="bin_orange" />
+            <geom name="bin_tgt_w1" class="cell" type="box" pos="0 -0.30 0.026"
+                  size="0.206 0.003 0.020" material="bin_orange" />
+            <geom name="bin_tgt_w2" class="cell" type="box" pos="0 -0.43 0.026"
+                  size="0.206 0.003 0.020" material="bin_orange" />
+            <geom name="bin_tgt_w3" class="cell" type="box" pos="-0.203 -0.365 0.026"
+                  size="0.003 0.071 0.020" material="bin_orange" />
+            <geom name="bin_tgt_w4" class="cell" type="box" pos="0.203 -0.365 0.026"
+                  size="0.003 0.071 0.020" material="bin_orange" />
+            <!-- Vị trí thả mục tiêu (khay vàng) - đánh dấu rõ ràng -->
+            <site name="target_drop_marker" type="sphere" pos="0 -0.365 0.035"
+                  size="0.01" rgba="1 0.8 0 0.8" />
+            <geom name="target_drop_zone" type="cylinder" pos="0 -0.365 0.032"
+                  size="0.045 0.001" rgba="1 0.8 0 0.15" contype="0" conaffinity="0" />
+        </body>
+
+        <!-- =====================================================================
+             30 VI LINH KIEN LO LUONG TREN KHONG GIAN -> ROI XUONG THUNG
+             (lop z = 0.13 / 0.23 / 0.33, lop 10 vien, keo jitter + yaw ngau nhien)
+             ===================================================================== -->
+        <body name="part_00" pos="-0.130 0.335 0.13" euler="0 0 8">
+            <freejoint />
+            <geom class="part" type="box" size="0.030 0.020 0.015" material="lk_orange" mass="0.05" />
+        </body>
+        <body name="part_01" pos="-0.065 0.395 0.13" euler="0 0 -11">
+            <freejoint />
+            <geom class="part" type="box" size="0.0175 0.0125 0.006" material="lk_teal" />
+        </body>
+        <body name="part_02" pos="0.000 0.333 0.13" euler="0 0 5">
+            <freejoint />
+            <geom class="part" type="box" size="0.015 0.015 0.015" material="lk_purple" />
+        </body>
+        <body name="part_03" pos="0.065 0.397 0.13" euler="0 0 -7">
+            <freejoint />
+            <geom class="part" type="box" size="0.025 0.009 0.0075" material="lk_green" />
+        </body>
+        <body name="part_04" pos="0.130 0.336 0.13" euler="0 0 12">
+            <freejoint />
+            <geom class="part" type="box" size="0.020 0.020 0.005" material="lk_gray" />
+        </body>
+        <body name="part_05" pos="-0.132 0.394 0.13" euler="0 0 -6">
+            <freejoint />
+            <geom class="part" type="box" size="0.0175 0.0125 0.006" material="lk_purple" />
+        </body>
+        <body name="part_06" pos="-0.063 0.336 0.13" euler="0 0 9">
+            <freejoint />
+            <geom class="part" type="box" size="0.025 0.009 0.0075" material="lk_orange" />
+        </body>
+        <body name="part_07" pos="0.002 0.396 0.13" euler="0 0 -4">
+            <freejoint />
+            <geom class="part" type="box" size="0.020 0.020 0.005" material="lk_teal" />
+        </body>
+        <body name="part_08" pos="0.066 0.334 0.13" euler="0 0 13">
+            <freejoint />
+            <geom class="part" type="box" size="0.030 0.020 0.015" material="lk_green" mass="0.05" />
+        </body>
+        <body name="part_09" pos="0.129 0.396 0.13" euler="0 0 -9">
+            <freejoint />
+            <geom class="part" type="box" size="0.015 0.015 0.015" material="lk_orange" />
+        </body>
+
+        <body name="part_10" pos="-0.128 0.337 0.23" euler="0 0 -10">
+            <freejoint />
+            <geom class="part" type="box" size="0.015 0.015 0.015" material="lk_green" />
+        </body>
+        <body name="part_11" pos="-0.066 0.393 0.23" euler="0 0 7">
+            <freejoint />
+            <geom class="part" type="box" size="0.030 0.020 0.015" material="lk_teal" mass="0.05" />
+        </body>
+        <body name="part_12" pos="-0.001 0.336 0.23" euler="0 0 -13">
+            <freejoint />
+            <geom class="part" type="box" size="0.025 0.009 0.0075" material="lk_purple" />
+        </body>
+        <body name="part_13" pos="0.064 0.394 0.23" euler="0 0 4">
+            <freejoint />
+            <geom class="part" type="box" size="0.0175 0.0125 0.006" material="lk_gray" />
+        </body>
+        <body name="part_14" pos="0.131 0.335 0.23" euler="0 0 -8">
+            <freejoint />
+            <geom class="part" type="box" size="0.020 0.020 0.005" material="lk_purple" />
+        </body>
+        <body name="part_15" pos="-0.131 0.396 0.23" euler="0 0 11">
+            <freejoint />
+            <geom class="part" type="box" size="0.025 0.009 0.0075" material="lk_orange" />
+        </body>
+        <body name="part_16" pos="-0.064 0.334 0.23" euler="0 0 -5">
+            <freejoint />
+            <geom class="part" type="box" size="0.020 0.020 0.005" material="lk_green" />
+        </body>
+        <body name="part_17" pos="0.001 0.397 0.23" euler="0 0 10">
+            <freejoint />
+            <geom class="part" type="box" size="0.0175 0.0125 0.006" material="lk_orange" />
+        </body>
+        <body name="part_18" pos="0.067 0.333 0.23" euler="0 0 -12">
+            <freejoint />
+            <geom class="part" type="box" size="0.015 0.015 0.015" material="lk_teal" />
+        </body>
+        <body name="part_19" pos="0.128 0.395 0.23" euler="0 0 6">
+            <freejoint />
+            <geom class="part" type="box" size="0.030 0.020 0.015" material="lk_gray" mass="0.05" />
+        </body>
+
+        <body name="part_20" pos="-0.129 0.334 0.33" euler="0 0 4">
+            <freejoint />
+            <geom class="part" type="box" size="0.020 0.020 0.005" material="lk_teal" />
+        </body>
+        <body name="part_21" pos="-0.067 0.396 0.33" euler="0 0 -9">
+            <freejoint />
+            <geom class="part" type="box" size="0.015 0.015 0.015" material="lk_orange" />
+        </body>
+        <body name="part_22" pos="0.000 0.394 0.33" euler="0 0 12">
+            <freejoint />
+            <geom class="part" type="box" size="0.030 0.020 0.015" material="lk_purple" mass="0.05" />
+        </body>
+        <body name="part_23" pos="0.063 0.336 0.33" euler="0 0 -6">
+            <freejoint />
+            <geom class="part" type="box" size="0.0175 0.0125 0.006" material="lk_green" />
+        </body>
+        <body name="part_24" pos="0.132 0.394 0.33" euler="0 0 8">
+            <freejoint />
+            <geom class="part" type="box" size="0.025 0.009 0.0075" material="lk_gray" />
+        </body>
+        <body name="part_25" pos="-0.133 0.393 0.33" euler="0 0 -12">
+            <freejoint />
+            <geom class="part" type="box" size="0.0175 0.0125 0.006" material="lk_teal" />
+        </body>
+        <body name="part_26" pos="-0.062 0.337 0.33" euler="0 0 6">
+            <freejoint />
+            <geom class="part" type="box" size="0.020 0.020 0.005" material="lk_purple" />
+        </body>
+        <body name="part_27" pos="-0.001 0.335 0.33" euler="0 0 -3">
+            <freejoint />
+            <geom class="part" type="box" size="0.025 0.009 0.0075" material="lk_teal" />
+        </body>
+        <body name="part_28" pos="0.062 0.397 0.33" euler="0 0 14">
+            <freejoint />
+            <geom class="part" type="box" size="0.015 0.015 0.015" material="lk_gray" />
+        </body>
+        <body name="part_29" pos="0.133 0.333 0.33" euler="0 0 -7">
+            <freejoint />
+            <geom class="part" type="box" size="0.030 0.020 0.015" material="lk_green" mass="0.05" />
+        </body>
+
+        <!-- =====================================================================
+             CANH TAY 6 BAC TU DO (truc 1..6) + CAMERA + DIEM F/T
+             ===================================================================== -->
+        <body pos="0 0 0.080">
+            <attach model="Base" body="Base" prefix="base_" />
+            <body pos="0 0 0.065">
+                <attach model="Hip" body="Hip" prefix="hip_" />
+                <joint class="joint" name="joint_hip" armature="0.05" />
+
+                <body pos="0 0 0.1655" euler="-90 0 -90">
+                    <attach model="Hindarm" body="Hindarm" prefix="hindarm_" />
+                    <joint class="joint" name="joint_hindarm" armature="0.05" />
+
+                    <body pos="0.22112 0 0" euler="0 0 0">
+                        <attach model="Forearm" body="Forearm" prefix="forearm_" />
+                        <joint class="joint" name="joint_forearm" armature="0.03" />
+
+                        <body pos="0.1275 0 0" euler="0 90 90">
+                            <attach model="Wrist" body="Wrist" prefix="wrist_" />
+                            <joint class="joint" name="joint_wrist" armature="0.02" />
+
+                            <body pos="0 0 0.095" euler="-90 0 -90">
+                                <attach model="Hand" body="Hand" prefix="hand_" />
+                                <joint class="joint" name="joint_hand" armature="0.01" />
+
+                                <!-- TRUC 6: roll quanh truc tiep can (dong goi gan ngam kep) -->
+                                <body pos="0.041 0 0" euler="0 0 0">
+                                    <joint class="joint" name="joint_roll" axis="1 0 0" damping="0.6" armature="0.01" />
+                                    <attach model="Gripper" body="Gripper" prefix="gripper_" />
+
+                                    <!-- CAMERA CONG NGHIEP (eye-in-hand) tren cot/chan:
+                                         FOV 60 deg, 1280x1024 (giong camera cong nghiep 1.3MP),
+                                         huong nhin = huong tiep can cua gam kep -->
+                                    <camera name="wrist_cam" pos="0.005 0 0.06"
+                                            xyaxes="0 -1 0 -0.054448 0 0.998517"
+                                            fovy="60" resolution="1280 1024" />
+
+                                    <!-- CAM BIEN LUC / MOM (F/T) tai diem giao cot tay - gam kep -->
+                                    <site name="ft_site" pos="0.002 0 0.004" size="0.004"
+                                          xyaxes="0 1 0 -0.054448 0 0.998517"
+                                          rgba="0.9 0.1 0.1 0.6" />
+
+                                    <!-- DIEM THAM CHIEU KHUON TAY (EE): mui ngon kep -->
+                                    <site name="ee_site" pos="0.13754 0 0.0075" size="0.006"
+                                          xyaxes="0 1 0 -0.054448 0 0.998517"
+                                          rgba="0.1 0.9 0.2 0.8" />
+
+                                    <!-- DIEM GIUA HAI NGON (vi tri kep chinh xac) -->
+                                    <site name="ee_tcp" pos="0.10278 0 0.0075" size="0.005"
+                                          rgba="0.9 0.9 0.1 0.8" />
+
+                                    <!-- CAM BIEN CHAM (xac nhip dap ung cham) tai vung kep -->
+                                    <site name="tactile_pad" type="box" pos="0.10278 0 0.0075"
+                                          size="0.03 0.04 0.012" rgba="1 0 0 0.25" />
+                                </body>
+                            </body>
+                        </body>
+                    </body>
+                </body>
+            </body>
+        </body>
+
+    </worldbody>
+
+    <!-- ================= KHOI DIEU KHIEN (day truyen luc) ================= -->
+    <!-- toan bo khop tay dieu khien bang momen xoan (torque / impedance control),
+         forcerange = gioi han an toan truc -->
+    <actuator>
+        <motor joint="joint_hip" name="hip_ctrl" ctrlrange="-60 60" forcelimited="true"
+               forcerange="-60 60" />
+        <motor joint="joint_hindarm" name="hindarm_ctrl" ctrlrange="-60 60" forcelimited="true"
+               forcerange="-60 60" />
+        <motor joint="joint_forearm" name="forearm_ctrl" ctrlrange="-45 45" forcelimited="true"
+               forcerange="-45 45" />
+        <motor joint="joint_wrist" name="wrist_ctrl" ctrlrange="-25 25" forcelimited="true"
+               forcerange="-25 25" />
+        <motor joint="joint_hand" name="hand_ctrl" ctrlrange="-20 20" forcelimited="true"
+               forcerange="-20 20" />
+        <motor joint="joint_roll" name="roll_ctrl" ctrlrange="-15 15" forcelimited="true"
+               forcerange="-15 15" />
+    </actuator>
+
+    <!-- ================= KHOI CAM BIEN ================= -->
+    <sensor>
+        <!-- F/T: phan luc & moment truyen qua cot tay -> gam kep (khung site) -->
+        <force name="ft_force" site="ft_site" />
+        <torque name="ft_torque" site="ft_site" />
+
+        <!-- cam bien cham tren mat kep -->
+        <touch name="gripper_touch" site="tactile_pad" />
+
+        <!-- vi tri / van toc 6 khop (telemetry) -->
+        <jointpos name="q_hip" joint="joint_hip" />
+        <jointpos name="q_hindarm" joint="joint_hindarm" />
+        <jointpos name="q_forearm" joint="joint_forearm" />
+        <jointpos name="q_wrist" joint="joint_wrist" />
+        <jointpos name="q_hand" joint="joint_hand" />
+        <jointpos name="q_roll" joint="joint_roll" />
+        <jointvel name="qd_hip" joint="joint_hip" />
+        <jointvel name="qd_hindarm" joint="joint_hindarm" />
+        <jointvel name="qd_forearm" joint="joint_forearm" />
+        <jointvel name="qd_wrist" joint="joint_wrist" />
+        <jointvel name="qd_hand" joint="joint_hand" />
+        <jointvel name="qd_roll" joint="joint_roll" />
+    </sensor>
+
+</mujoco>

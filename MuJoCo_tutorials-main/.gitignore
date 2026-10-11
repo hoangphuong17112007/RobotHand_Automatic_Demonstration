@@ -28,3 +28,8 @@
 *.o
 */.*
 !.gitignore
+# build outputs
+*.dll
+4/bin/
+MUJOCO_LOG.TXT
+
