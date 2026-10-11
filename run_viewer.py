@@ -1,8 +1,8 @@
 ﻿# -*- coding: utf-8 -*-
-"""Khao dong du lieu: mo Viewer 3D va TU DONG chay toan bo pipeline IPC + AI.
+"""Khao dong du lieu: mo Viewer 3D va TU DONG chay toan bo pipeline RTC + AI.
 
 Cau truc an toan thread: mo phong, mission va camera deu chay tren MAIN THREAD
-(qua IpcNode.advance() - mot buoc 1 tick) va duoc bao ve boi `vh.lock()` — cung
+(qua RtcNode.advance() - mot buoc 1 tick) va duoc bao ve boi `vh.lock()` — cung
 mutex ma viewer passive su dung khi copy mjData sang scene rieng de render. Nho do
 mj_step khong bao gio trung voi `mj_copyDataVisual` cua viewer (`stack is in use`).
 `vh.sync()` day frame moi nhat. AI chay song song trong thread rieng qua Bridge.
@@ -20,7 +20,7 @@ import numpy as np
 from automation import config as C
 from automation.bridge import Bridge
 from automation.ai_node import AiNode
-from automation.ipc_node import IpcNode
+from automation.rtc_node import RtcNode
 
 
 def _draw_drop_marker(scene, runner) -> None:
@@ -68,17 +68,17 @@ def main() -> None:
     args = ap.parse_args()
 
     bridge = Bridge(history_size=4)
-    ipc = IpcNode(bridge, cycles=args.cycles, task=args.task,
+    rtc = RtcNode(bridge, cycles=args.cycles, task=args.task,
                   snapshot_every=args.snapshot_every)
     ai = AiNode(bridge, task=args.task, infer_sleep=args.infer_sleep)
     ai.start()
 
     # Runner + settle chay ngay tren main thread truoc khi mo viewer.
-    ipc.prepare()
+    rtc.prepare()
     print(f"[viewer] tay Robot tu dong gắp - task={args.task}, cycles={args.cycles}. "
           f"Dong cua so de ket thuc.", flush=True)
     try:
-        with mujoco.viewer.launch_passive(ipc.runner.model, ipc.runner.data,
+        with mujoco.viewer.launch_passive(rtc.runner.model, rtc.runner.data,
                                           show_left_ui=False) as vh:
             while vh.is_running():
                 with vh.lock():
@@ -86,14 +86,14 @@ def main() -> None:
                     # nhung van de viewer cap nhat lien tuc (khong giu lock qua lau).
                     burst = 0
                     status = "step"
-                    while burst < 40 and not ipc.idle():
-                        status = ipc.advance()
+                    while burst < 40 and not rtc.idle():
+                        status = rtc.advance()
                         burst += 1
                         if status == "aim":
                             # Dang cho AI tinh: gia dung moi frame de AI kip xu ly.
                             break
                     # Danh dau vi tri tha cua chu ky ke tiep tren khay vang.
-                    _draw_drop_marker(vh.user_scn, ipc.runner)
+                    _draw_drop_marker(vh.user_scn, rtc.runner)
                 vh.sync()
                 time.sleep(0.001)
                 if status == "done_all":
@@ -103,15 +103,15 @@ def main() -> None:
     except Exception as e:
         print(f"[viewer] loi viewer: {e}", flush=True)
     finally:
-        ipc.finish()
+        rtc.finish()
         ai.stop()
         ai.join(timeout=3.0)
 
-    summary = ipc.summary_report()
+    summary = rtc.summary_report()
     results = summary.get("results", [])
-    if ipc.runner is not None:
-        ipc.runner.save_csv(C.OUT_DIR / "telemetry" / "aipick.csv", tag=f"task{args.task}")
-        ipc.runner.save_results(C.OUT_DIR / "results" / "aipick.csv")
+    if rtc.runner is not None:
+        rtc.runner.save_csv(C.OUT_DIR / "telemetry" / "aipick.csv", tag=f"task{args.task}")
+        rtc.runner.save_results(C.OUT_DIR / "results" / "aipick.csv")
     ok = sum(1 for r in results if r.get("outcome") == "ok")
     loose = sum(1 for r in results if r.get("outcome") == "loose")
     print(f"\n=== Demo ket thuc: {len(results)} chu ky | ok={ok} loose={loose} "

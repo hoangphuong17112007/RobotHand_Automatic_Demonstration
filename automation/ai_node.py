@@ -138,7 +138,7 @@ class AiNode(threading.Thread):
     def _poke_proposal(self, snap: Snapshot, cands, ci_ev, base) -> Proposal | None:
         """De xuat "gal" (poke): day part ke goc ra khoi vach roi moi gap thuc su.
 
-        Vi tri/do day do Transporter tinh (poke_xy/poke_dir) - IPC chay chuoi
+        Vi tri/do day do Transporter tinh (poke_xy/poke_dir) - RTC chay chuoi
         gal va SNAPSHOT lai de AI tinh tiep, so lan bi gioi han boi poke budget.
         """
         ci, ev = ci_ev

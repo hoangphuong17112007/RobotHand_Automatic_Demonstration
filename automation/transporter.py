@@ -6,7 +6,7 @@ Vai tro trong pipeline AI:
   theo huong kep (close axis da xoay theo yaw cua linh kien), phat hien cac linh
   kien LAN CAN DANG CAN TRO (blockers), va chi con trong lai nhung ung vien
   co du khoang trong de 2 ngon kep luot xuong ben canh. Cac vat can duoc danh dau
-  de IPC "doi gat" (blocked) cho den khi khu vuc thong thoang.
+  de RTC "doi gat" (blocked) cho den khi khu vuc thong thoang.
 
 Vach khay (walls): vach KHONG cho la vat can ao khi band kep cham tuong - part
   sat vach bi coi la KHONG the gap (corner) truoc khi duoc "gal" ra khoi goc.

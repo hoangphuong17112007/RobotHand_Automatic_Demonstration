@@ -26,10 +26,10 @@ mujoco/
 │   ├── icp.py               # BoxIcp: khớp pose 6D (x,y,yaw) với point cloud
 │   ├── bridge.py            # Cầu nối lock-free (ring buffer Snapshot/Proposal)
 │   ├── ai_node.py           # Thread AI: snapshot → pipeline 3 tầng → proposal
-│   ├── ipc_node.py          # Thread IPC: mô phỏng + mission + snapshot ↔ proposal
+│   ├── rtc_node.py          # Thread RTC (Real Time Controller): mô phỏng + mission + snapshot ↔ proposal
 │   └── analytics.py         # KPI, Force profile, Cycle time, Trajectory, Dashboard
 ├── run_benchmark.py         # Baseline GĐ2: chạy N chu kỳ → out/results + telemetry + dashboard
-├── run_ai_pick.py           # GĐ3/GĐ4: pipeline IPC + AI chạy song song (không viewer)
+├── run_ai_pick.py           # GĐ3/GĐ4: pipeline RTC (Real Time Controller) + AI chạy song song (không viewer)
 ├── run_viewer.py            # GĐ5: mở Viewer 3D và TỰ ĐỘNG chạy toàn bộ pipeline
 ├── test_move.py             # Điều khiển khớp, đọc cảm biến F/T + touch
 ├── test_camera.py           # Xuất ảnh từ camera gắn cổ tay → out/wrist_cam.png
@@ -69,7 +69,7 @@ python test_camera.py      # xuất ảnh từ camera gắn cổ tay -> out/wris
 python test_pickplace.py   # chạy 1 chu kỳ gắp-đặt, in telemetry và kết quả
 ```
 
-Demo tự động (GĐ5) — mở **Viewer 3D và tự động chạy pipeline IPC + AI**:
+Demo tự động (GĐ5) — mở **Viewer 3D và tự động chạy pipeline RTC + AI**:
 
 ```powershell
 python run_viewer.py --cycles 8 --task 1
@@ -79,7 +79,7 @@ python run_viewer.py --cycles 6 --task 2
 Pipeline đầu cuối không cần viewer:
 
 ```powershell
-python run_ai_pick.py --cycles 6 --infer-sleep 0.02   # GĐ3/GĐ4: IPC + AI
+python run_ai_pick.py --cycles 6 --infer-sleep 0.02   # GĐ3/GĐ4: RTC + AI
 python run_benchmark.py --cycles 6                    # baseline GĐ2 (chọn mục tiêu ground-truth)
 ```
 
@@ -121,10 +121,10 @@ MuJoCo\bin\compile.exe main.xml out.mjb
 - **Mesh** `linhkien/lk1..lk5.stl` được khai báo trong `<asset>` làm mẫu CAD;
   các vật thể mô phỏng hiện dùng box (mesh thật thay bằng cách sửa geom tương ứng).
 
-## 5. Kiến trúc GĐ3/GĐ4 (IPC + AI đa luồng)
+## 5. Kiến trúc GĐ3/GĐ4 (RTC + AI đa luồng)
 
 ```
-[Thread IPC]  Runner (mô phỏng 1ms + Impedance + mission FSM)
+[Thread RTC]  Runner (mô phỏng 1ms + Impedance + mission FSM)
    │  snapshot RGB-D-Seg (wrist_cam) ──► Bridge (ring buffer lock-free)
    │                                          ▲
    │  proposal (x,y,yaw,score,action) ◄────────│
@@ -135,7 +135,7 @@ MuJoCo\bin\compile.exe main.xml out.mjb
 - **`bridge.py`**: mỗi kênh (snapshot, proposal) là ring buffer kích thước cố
   định, ghi/đọc O(1) không khóa mutex; mọi packet mang `ts` (thời gian sim) +
   `wall` (đồng hồ tường) cho khâu bù trễ.
-- **`ipc_node.py`**: sở hữu *độc quyền* `mjModel`/`mjData`, mọi thao tác MuJoCo
+- **`rtc_node.py`**: sở hữu *độc quyền* `mjModel`/`mjData`, mọi thao tác MuJoCo
   (step, camera, sync) chỉ xảy ra trong luồng này → an toàn với viewer passive.
   Có bù trễ (Latency Compensation) ngoại suy vị trí part từ lúc chụp tới hiện
   tại, và Visual-Force Servoing khi hạ kẹp (mặc định tắt: `VFS_ENABLE=False`).
@@ -187,7 +187,7 @@ nên hai task cho kết quả tương đương, phần profile chuyên biệt đ
 - `out/dashboard/` — `force_profile*.png`, `cycle_times*.png`, `trajectory*.png`, `kpi*.csv`
 
 `automation/analytics.py` tính KPI (tỉ lệ thành công, cycle time TB/min/max) và
-`analysis/evaluation.ipynb` so sánh baseline GĐ2 với pipeline IPC+AI.
+`analysis/evaluation.ipynb` so sánh baseline GĐ2 với pipeline RTC+AI.
 
 ## 9. Build tutorial C (tham khảo)
 

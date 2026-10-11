@@ -1,4 +1,4 @@
-"""Thread IPC: chay Runner (mo phong + dieu khien + mission) va ban snapshot cho AI,
+"""Thread RTC (Real Time Controller): chay Runner (mo phong + dieu khien + mission) va ban snapshot cho AI,
 nhan proposal ve de dinh target moi chu ky.
 
 Thiet ke an toan thread voi viewer: moi tac dong len MjData (mo phong + camera + sync)
@@ -22,12 +22,12 @@ from .graspai import build_patch
 from .runner import Runner
 
 
-class IpcNode(threading.Thread):
+class RtcNode(threading.Thread):
     """So huu mo hinh/diff; moi thao tac mujoco chi trong thread nay."""
 
     def __init__(self, bridge: Bridge, cycles: int = 5, task: int = 1,
                  settle_steps: int = 2500, snapshot_every: int = 0,
-                 name: str = "ipc_node"):
+                 name: str = "rtc_node"):
         super().__init__(daemon=True, name=name)
         self.bridge = bridge
         self.cycles = cycles
@@ -73,7 +73,7 @@ class IpcNode(threading.Thread):
             return
         self.runner = Runner()
         self.camera = Camera(self.runner.model)
-        print(f"[ipc] chuan bi, task={self.task}, cycles={self.cycles} ...", flush=True)
+        print(f"[rtc] chuan bi, task={self.task}, cycles={self.cycles} ...", flush=True)
         self.runner.settle(self.settle_steps)
         self._prepared = True
 
@@ -145,7 +145,7 @@ class IpcNode(threading.Thread):
                 self.failed.add(r.mission.target)
             r.results.append(out)
             self.results.append(out)
-            print(f"[ipc] cycle {self._cycle} {out.get('outcome')} {out.get('part')} "
+            print(f"[rtc] cycle {self._cycle} {out.get('outcome')} {out.get('part')} "
                   f"sim={out.get('sim_dt', 0):.1f}s", flush=True)
             self._end_cycle()
             return "step"
@@ -202,7 +202,7 @@ class IpcNode(threading.Thread):
                     self._aim_state = None
                     return "step"
                 self.ai_used.append({"cycle": self._cycle, **vars(self._prop)})
-                print(f"[ipc] cycle {self._cycle} poke <- AI: {self._prop.name} "
+                print(f"[rtc] cycle {self._cycle} poke <- AI: {self._prop.name} "
                       f"dir=({self._prop.poke_dir[0]:+.2f},"
                       f"{self._prop.poke_dir[1]:+.2f})", flush=True)
                 self._ct = (r.steps, time.perf_counter(), d.time)
@@ -217,7 +217,7 @@ class IpcNode(threading.Thread):
             if aim_ok:
                 self._track_target(r.sim_t, px, py)
                 self.ai_used.append({"cycle": self._cycle, **vars(self._prop)})
-                print(f"[ipc] cycle {self._cycle} aim <- AI: {self._prop.name} at "
+                print(f"[rtc] cycle {self._cycle} aim <- AI: {self._prop.name} at "
                       f"({px:.3f},{py:.3f}) yaw={self._prop.yaw:.2f} "
                       f"clr={self._prop.clearance:.3f} ready={self._prop.grasp_ready} "
                       f"score={self._prop.score:.2f}", flush=True)
@@ -229,7 +229,7 @@ class IpcNode(threading.Thread):
                 self._aim_ok = False
         if not r.mission.start_cycle(d, r.sim_t):
             self.results.append({"cycle": self._cycle, "outcome": "no_target"})
-            print(f"[ipc] cycle {self._cycle}: no target", flush=True)
+            print(f"[rtc] cycle {self._cycle}: no target", flush=True)
             self._end_cycle()
             return "start"
         self._ct = (r.steps, time.perf_counter(), d.time)
@@ -255,7 +255,7 @@ class IpcNode(threading.Thread):
         r = self.runner
         target = r.mission.target
         self._regrasps += 1
-        print(f"[ipc] cycle {self._cycle} slip-risk -> Deep Grasp tinh lai "
+        print(f"[rtc] cycle {self._cycle} slip-risk -> Deep Grasp tinh lai "
               f"toa do kep #{self._regrasps}", flush=True)
         if self._regrasps > C.GRASP_REGASPS_MAX:
             self.failed.add(target) if target is not None else None
@@ -267,7 +267,7 @@ class IpcNode(threading.Thread):
             out["outcome"] = "loose"
             r.results.append(out)
             self.results.append(out)
-            print(f"[ipc] cycle {self._cycle} loose (het lan thu lai) "
+            print(f"[rtc] cycle {self._cycle} loose (het lan thu lai) "
                   f"{out.get('part')} sim={out['sim_dt']:.1f}s", flush=True)
             self._end_cycle()
             return "step"
@@ -288,7 +288,7 @@ class IpcNode(threading.Thread):
         self._poke_ct += 1
         budget = max(0, C.POKE_MAX - self._poke_ct)
         self.bridge.set_poke_budget(budget)
-        print(f"[ipc] cycle {self._cycle} poked #{self._poke_ct} "
+        print(f"[rtc] cycle {self._cycle} poked #{self._poke_ct} "
               f"(budget con {budget})", flush=True)
         self._cycling = False
         self._aim_state = None
@@ -404,7 +404,7 @@ class IpcNode(threading.Thread):
         try:
             cands = self.camera.candidates(d)
         except Exception as e:
-            print(f"[ipc] refine fail: {e}", flush=True)
+            print(f"[rtc] refine fail: {e}", flush=True)
             return None
         goal = self.runner.mission.hover[:2]
         for pc in cands:

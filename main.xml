@@ -10,7 +10,7 @@
 
     <compiler autolimits="true" balanceinertia="true" />
 
-    <!-- moi phong 1 buoc = 1 ms (RTOS ao cua khoi IPC) -->
+    <!-- moi phong 1 buoc = 1 ms (RTOS ao cua khoi RTC) -->
     <option timestep="0.001" integrator="implicitfast" gravity="0 0 -9.81"
             solver="Newton" iterations="50" ls_iterations="30"
             tolerance="1e-8" cone="pyramidal" />
