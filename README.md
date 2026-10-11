@@ -203,20 +203,6 @@ Tutorial 4 phải chạy với thư mục hiện hành là `bin` (exe load `../m
 Trong VS Code: `Ctrl+Shift+B` để build, hoặc chọn cấu hình debug
 `C: belt.exe (tutorial 1)` / `C: belt.exe (tutorial 4)`.
 
-## 10. Ghi chú cấu hình
 
-- Đường dẫn trong makefile là **tương đối** (`../../MuJoCo`, `../../third_party/...`),
-  chuyển dự án sang máy khác chỉ cần giữ nguyên cấu trúc thư mục.
-- `mjv_moveCamera()` trong `main.c` (tutorial 1 và 4) đã sửa về đúng chữ ký của
-  MuJoCo 3.x (5 tham số) — bản gốc truyền thừa `&scn` nên không build được.
-- `linhkien/lk1..lk5.stl` là mesh (đơn vị mm, `main.xml` scale 0.001); thay bằng
-  mesh thật bằng cách ghi đè file tương ứng.
-- `.gitignore` bỏ qua môi trường Python (`.venv/`, `__pycache__/`), cấu hình IDE
-  (`.vscode/`), artifact/log (`out/`, `out.zip`, `MUJOCO_LOG.TXT`, `*.mjb`), dữ
-  liệu telemetry (`*.csv`) và thư viện ngoại lai (`MuJoCo/`, `MuJoCo_tutorials-main/`).
-  Lưu ý: `MuJoCo/` chưa từng được commit nên bị loại hoàn toàn; `MuJoCo_tutorials-main/`
-  và `.vscode/` đã có trong lịch sử Git nên vẫn hiện trên GitHub — muốn gỡ hẳn cần
-  `git rm -r --cached <thư_mục>`.
-
-## 11. Tác giả
+## 10. Tác giả
 System 3122
