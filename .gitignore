@@ -1,0 +1,26 @@
+# Python
+__pycache__/
+*.pyc
+.venv/
+
+# Cau hinh IDE cuc bo
+.vscode/
+
+# Ket qua mo phong / artifacts & logs
+out/
+out.zip
+*.mjb
+MUJOCO_LOG.TXT
+
+# Du lieu telemetry (CSV): phinh to rat nhanh qua cac lan test
+*.csv
+
+# build outputs (tutorial C)
+MuJoCo_tutorials-main/*/mujoco.dll
+MuJoCo_tutorials-main/*/glfw3.dll
+MuJoCo_tutorials-main/4/bin/
+MuJoCo_tutorials-main/*/MUJOCO_LOG.TXT
+
+# Thu vien ngoai lai / SDK (tai rieng tu https://mujoco.org)
+MuJoCo/
+MuJoCo_tutorials-main/
