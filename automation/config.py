@@ -199,8 +199,8 @@ TRANSPORTER_FALLBACK = True
 GRASP_ICP_RMSE_MAX = 0.006
 GRASP_ICP_INLIER_MIN = 0.25
 
-# ---------------------------------------------------------------- IPC <-> AI
-# Ngan ngoi diem proposal toi thieu de IPC tien hanh gap.
+# ---------------------------------------------------------------- RTC <-> AI
+# Ngan ngoi diem proposal toi thieu de RTC tien hanh gap.
 PROP_SCORE_MIN = 0.20
 # Lock-free ring buffer: do dai lich su moi kenh (O(1) doc/ghi).
 BRIDGE_HISTORY = 4

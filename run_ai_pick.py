@@ -1,4 +1,4 @@
-"""Chay pipeline day du: IPC (mo phong + dieu khien + mission) + AI (thi giac + CNN) qua Bridge."""
+"""Chay pipeline day du: RTC (Real Time Controller: mo phong + dieu khien + mission) + AI (thi giac + CNN) qua Bridge."""
 from __future__ import annotations
 
 import argparse
@@ -7,7 +7,7 @@ import time
 from automation import config as C
 from automation.bridge import Bridge
 from automation.ai_node import AiNode
-from automation.ipc_node import IpcNode
+from automation.rtc_node import RtcNode
 
 
 def main() -> int:
@@ -21,24 +21,24 @@ def main() -> int:
     args = ap.parse_args()
 
     bridge = Bridge(history_size=4)
-    ipc = IpcNode(bridge, cycles=args.cycles, task=args.task,
+    rtc = RtcNode(bridge, cycles=args.cycles, task=args.task,
                   snapshot_every=args.snapshot_every)
     ai = AiNode(bridge, task=args.task, infer_sleep=args.infer_sleep)
     t0 = time.perf_counter()
-    ipc.start()
+    rtc.start()
     ai.start()
-    ipc.join()
+    rtc.join()
     ai.stop()
     ai.join(timeout=5.0)
 
-    summary = ipc.summary_report()
+    summary = rtc.summary_report()
     results = summary.get("results", [])
     wall = summary.get("wall_time", time.perf_counter()) - t0
-    if ipc.runner is not None:
-        ipc.runner.save_csv(C.OUT_DIR / "telemetry" / "aipick.csv", tag=f"task{args.task}")
-        ipc.runner.save_results(C.OUT_DIR / "results" / "aipick.csv")
+    if rtc.runner is not None:
+        rtc.runner.save_csv(C.OUT_DIR / "telemetry" / "aipick.csv", tag=f"task{args.task}")
+        rtc.runner.save_results(C.OUT_DIR / "results" / "aipick.csv")
 
-    print("\n=== Ket qua pipeline IPC + AI ===")
+    print("\n=== Ket qua pipeline RTC + AI ===")
     print(f"task={args.task} | cycles={len(results)} | sim_time={summary.get('sim_time', 0):.1f}s "
           f"| wall={wall:.1f}s | AI snapshots={len(ai.log)}")
     ok = sum(1 for r in results if r.get("outcome") == "ok")

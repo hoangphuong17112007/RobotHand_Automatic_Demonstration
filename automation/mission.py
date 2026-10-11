@@ -714,7 +714,7 @@ class PickMission:
             if dc >= C.GRIP_CLOSE_DURATION and self._gripped_retry(d):
                 # Nguy co truot phat hien NGAY KHI KEP: part bi nghieng (nan kep
                 # dang lop goc/mat) -> dung tay, mo kep va goi Deep Grasp tinh lai
-                # toa do kep (re-snapshot + re-aim o phan ipc_node).
+                # toa do kep (re-snapshot + re-aim o phan rtc_node).
                 tip, _, _ = self.kin.read_frame(d)
                 pp = d.xpos[self.target]
                 print(f"[SLIP] NGUY CO truot khi kep (tilt>{C.SLIP_TILT_DEG:.0f} do) "
@@ -873,7 +873,7 @@ class PickMission:
                          0.2, 0.5)
         elif ph == self.POKE:
             # Chuoi gal: hover -> (dung sau part) -> quet -> nang -> ve bin.
-            # Xong chuoi -> 'poked' de ipc_node quet cam moi (AI tinh tiep).
+            # Xong chuoi -> 'poked' de rtc_node quet cam moi (AI tinh tiep).
             timeout = (self._poll >= len(self._poke_pts) and self._poke_t0 >= 0
                        and now - self._poke_t0 > 0.4)
             if timeout:
@@ -917,7 +917,7 @@ class PickMission:
             target = self.seg.pose_at(t) if self.seg is not None else self._hold_current(d)
         if ph == self.DESCEND:
             # Vision Feedback Servoing: dich đeu vi tri ngang theo vfs_off
-            # (duoc ipc_node tinh khi quan sat lai linh kien trong luc ha).
+            # (duoc rtc_node tinh khi quan sat lai linh kien trong luc ha).
             if np.any(self.vfs_off):
                 target.tip = target.tip + np.array([self.vfs_off[0], self.vfs_off[1], 0.0])
         if ph == self.HOVER and not self._preopen_done:

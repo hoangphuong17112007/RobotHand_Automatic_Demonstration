@@ -1,4 +1,4 @@
-"""Cau noi IPC <-> AI: Lock-free Ring Buffer dang SPSC (single-producer/single-consumer).
+"""Cau noi RTC <-> AI: Lock-free Ring Buffer dang SPSC (single-producer/single-consumer).
 
 Nguyen tac O(1):
 - Moi kenh (snapshot, proposal) la mot ring buffer co kich thuoc co dinh.
@@ -40,7 +40,7 @@ class Proposal:
     x: float
     y: float
     z_top: float
-    yaw: float = 0.0             # huong truc kep (rad, quanh z) -> IPC dat close axis
+    yaw: float = 0.0             # huong truc kep (rad, quanh z) -> RTC dat close axis
     clearance: float = 1.0       # khe gap nho nhat (m) quanh vi tri gap
     grasp_ready: bool = True     # AI da xac nhan: gắp duoc, khong bi can tro
     blocked: set = field(default_factory=set)   # cac linh kien dang la vat can
@@ -61,7 +61,7 @@ class Bridge:
         self._prop_n = max(1, history_size)
         self._snap_ring: list[Snapshot | None] = [None] * self._snap_n
         self._prop_ring: list[Proposal | None] = [None] * self._prop_n
-        self._snap_seq = 0                       # chi producer (IpcNode) ghi
+        self._snap_seq = 0                       # chi producer (RtcNode) ghi
         self._prop_seq = 0                       # chi producer (AiNode) ghi
         self._blocked = frozenset()
         self._poke_budget = max(0, poke_budget)
